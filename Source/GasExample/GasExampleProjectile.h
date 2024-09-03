@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayEffect.h"
+
 #include "GasExampleProjectile.generated.h"
 
 class USphereComponent;
 class UProjectileMovementComponent;
 
-UCLASS(config=Game)
+UCLASS(Abstract, config=Game)
 class AGasExampleProjectile : public AActor
 {
 	GENERATED_BODY()
@@ -21,6 +23,9 @@ class AGasExampleProjectile : public AActor
 	/** Projectile movement component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	UProjectileMovementComponent* ProjectileMovement;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AbilitySystem, meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGameplayEffect> GameplayEffectOnHit;
 
 public:
 	AGasExampleProjectile();

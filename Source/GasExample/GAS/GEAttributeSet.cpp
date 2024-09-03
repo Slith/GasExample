@@ -13,12 +13,22 @@ UGEAttributeSet::UGEAttributeSet()
 
 void UGEAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
+	if (Attribute == GetHealthAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0, GetHealthMax());
+	}
+
 	UE_VLOG_ALWAYS_UELOG(GetOwningActor(), LogAttributes, Verbose, TEXT("[%s/%s] PreAttributeChange [%s] from: [%4.2f] to: [%4.2f]."),
 		*GetNameSafe(GetOuter()), *GetName(), *Attribute.GetName(), Attribute.GetNumericValue(this), NewValue);
 }
 
 void UGEAttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
 {
+	if (Attribute == GetHealthAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0, GetHealthMax());
+	}
+
 	UE_VLOG_ALWAYS_UELOG(GetOwningActor(), LogAttributes, Verbose, TEXT("[%s/%s] PreAttributeBaseChange [%s] from: [%4.2f] to: [%4.2f].."),
 		*GetNameSafe(GetOuter()), *GetName(), *Attribute.GetName(), Attribute.GetNumericValue(this), NewValue);
 }

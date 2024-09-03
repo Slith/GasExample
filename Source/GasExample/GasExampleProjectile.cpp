@@ -3,6 +3,8 @@
 #include "GasExampleProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "AbilitySystemComponent.h"
 
 AGasExampleProjectile::AGasExampleProjectile() 
 {
@@ -33,11 +35,28 @@ AGasExampleProjectile::AGasExampleProjectile()
 
 void AGasExampleProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && OtherComp->IsSimulatingPhysics())
+	if ((OtherActor != nullptr))
 	{
-		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+		if (UAbilitySystemComponent* HitASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OtherActor))
+		{
+			if (UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator()))
+			{
+				if (GameplayEffectOnHit)
+				{
+					FGameplayEffectSpec GameplayEffectSpec(GameplayEffectOnHit.GetDefaultObject(), InstigatorASC->MakeEffectContext());
+					InstigatorASC->ApplyGameplayEffectSpecToTarget(GameplayEffectSpec, HitASC);
 
-		Destroy();
+					Destroy();
+				}
+			}
+		}
+		else
+		// Only add impulse and destroy projectile if we hit a physics
+		if ((OtherActor != this) && (OtherComp != nullptr) && OtherComp->IsSimulatingPhysics())
+		{
+			OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+
+			Destroy();
+		}
 	}
 }

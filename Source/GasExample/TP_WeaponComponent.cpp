@@ -18,6 +18,8 @@ UTP_WeaponComponent::UTP_WeaponComponent()
 {
 	// Default offset from the character location for projectiles to spawn
 	MuzzleOffset = FVector(100.0f, 0.0f, 10.0f);
+
+	SelectedProjectileClassIndex = INDEX_NONE;
 }
 
 
@@ -29,7 +31,7 @@ void UTP_WeaponComponent::Fire()
 	}
 
 	// Try and fire a projectile
-	if (ProjectileClass != nullptr)
+	if (SelectedProjectileClassIndex != INDEX_NONE && AvailableProjectileClasses.Num() > SelectedProjectileClassIndex)
 	{
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
@@ -42,9 +44,10 @@ void UTP_WeaponComponent::Fire()
 			//Set Spawn Collision Handling Override
 			FActorSpawnParameters ActorSpawnParams;
 			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+			ActorSpawnParams.Instigator = Character;
 	
 			// Spawn the projectile at the muzzle
-			World->SpawnActor<AGasExampleProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			World->SpawnActor<AGasExampleProjectile>(AvailableProjectileClasses[SelectedProjectileClassIndex], SpawnLocation, SpawnRotation, ActorSpawnParams);
 		}
 	}
 	
@@ -66,6 +69,22 @@ void UTP_WeaponComponent::Fire()
 	}
 }
 
+FName UTP_WeaponComponent::GetSelectedAmmoName() const
+{
+	if (SelectedProjectileClassIndex != INDEX_NONE && AvailableProjectileClasses.Num() > SelectedProjectileClassIndex)
+	{
+		if (const UClass* DefaultSelectedProjectileClass = AvailableProjectileClasses[SelectedProjectileClassIndex])
+		{
+			if (DefaultSelectedProjectileClass->ClassGeneratedBy)
+			{
+				return DefaultSelectedProjectileClass->ClassGeneratedBy->GetFName();
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
 bool UTP_WeaponComponent::AttachWeapon(AGasExampleCharacter* TargetCharacter)
 {
 	Character = TargetCharacter;
@@ -83,6 +102,11 @@ bool UTP_WeaponComponent::AttachWeapon(AGasExampleCharacter* TargetCharacter)
 	// add the weapon as an instance component to the character
 	Character->AddInstanceComponent(this);
 
+	if (SelectedProjectileClassIndex == INDEX_NONE && AvailableProjectileClasses.Num() > 0)
+	{
+		SelectedProjectileClassIndex = 0;
+	}
+
 	// Set up action bindings
 	if (APlayerController* PlayerController = Cast<APlayerController>(Character->GetController()))
 	{
@@ -96,10 +120,38 @@ bool UTP_WeaponComponent::AttachWeapon(AGasExampleCharacter* TargetCharacter)
 		{
 			// Fire
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Fire);
+			EnhancedInputComponent->BindAction(NextProjectileClass, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::OnNextProjectileClass);
+			EnhancedInputComponent->BindAction(PreviousProjectileClass, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::OnPreviousProjectileClass);
 		}
 	}
 
 	return true;
+}
+
+void UTP_WeaponComponent::OnNextProjectileClass()
+{
+	if (AvailableProjectileClasses.Num() > 0)
+	{
+		if (++SelectedProjectileClassIndex >= AvailableProjectileClasses.Num())
+		{
+			SelectedProjectileClassIndex = 0;
+		}
+
+		OnSelectedAmmoChanged.Broadcast(GetSelectedAmmoName());
+	}
+}
+
+void UTP_WeaponComponent::OnPreviousProjectileClass()
+{
+	if (AvailableProjectileClasses.Num() > 0)
+	{
+		if (--SelectedProjectileClassIndex < 0)
+		{
+			SelectedProjectileClassIndex = AvailableProjectileClasses.Num() - 1;
+		}
+
+		OnSelectedAmmoChanged.Broadcast(GetSelectedAmmoName());
+	}
 }
 
 void UTP_WeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

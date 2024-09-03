@@ -8,15 +8,19 @@
 
 class AGasExampleCharacter;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSelectedAmmoChanged, FName, SelectedAmmoName);
+
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GASEXAMPLE_API UTP_WeaponComponent : public USkeletalMeshComponent
 {
 	GENERATED_BODY()
 
 public:
-	/** Projectile class to spawn */
-	UPROPERTY(EditDefaultsOnly, Category=Projectile)
-	TSubclassOf<class AGasExampleProjectile> ProjectileClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Projectile)
+	TArray<TSubclassOf<class AGasExampleProjectile>> AvailableProjectileClasses;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Projectile)
+	int32 SelectedProjectileClassIndex;
 
 	/** Sound to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Gameplay)
@@ -38,6 +42,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputAction* FireAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* NextProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* PreviousProjectileClass;
+
 	/** Sets default values for this component's properties */
 	UTP_WeaponComponent();
 
@@ -45,9 +55,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	bool AttachWeapon(AGasExampleCharacter* TargetCharacter);
 
+	void OnNextProjectileClass();
+	void OnPreviousProjectileClass();
+
 	/** Make the weapon Fire a Projectile */
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	FName GetSelectedAmmoName() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FSelectedAmmoChanged OnSelectedAmmoChanged;
 
 protected:
 	/** Ends gameplay for this component. */
